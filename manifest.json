@@ -1,11 +1,11 @@
 {
-  "name": "Pro Text Studio",
-  "short_name": "TextStudio",
+  "name": "Thumbnail Studio Ultimate",
+  "short_name": "ThumbStudio",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
-  "description": "Malayalam, English, Arabic Text Overlay App",
+  "background_color": "#0d1117",
+  "theme_color": "#d4af37",
+  "description": "Professional YouTube Thumbnail Editor",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3209/3209265.png",
