@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2979ff">
+<title>Pro Text Studio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;700;900&family=Baloo+Chettan+2:wght@400;700;800&family=Manjari:wght@400;700&family=Anek+Malayalam:wght@400;700&family=Gayathri:wght@700&family=Inter:wght@400;700;900&family=Anton&family=Bebas+Neue&family=Bangers&family=Oswald:wght@500;700&family=Russo+One&family=Cairo:wght@400;700;900&family=Tajawal:wght@700;900&family=Almarai:wght@700;800&family=Amiri:wght@700&family=Lalezar&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #121212; --surface: #1e1e24; --surface-light: #2a2a35;
+    --primary: #2979ff; --text: #ffffff; --text-muted: #888; --border: #333;
+    --ui-white: #f5f5f5; --teal-bg: #7da7a3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+
+  /* Loader */
+  #loader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
+  .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Navbar */
+  .navbar { height: 56px; background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; flex-shrink: 0; }
+  .nav-btn { background: transparent; border: none; color: white; font-size: 13px; font-weight: 600; height: 36px; padding: 0 12px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; gap: 6px; }
+  .nav-btn:active { background: rgba(255,255,255,0.1); }
+  .nav-btn.save-btn { background: var(--primary); }
+  .nav-btn.db-btn { background: #4caf50; }
+
+  /* Canvas */
+  .canvas-container { flex: 1; position: relative; background: #0a0a0a; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 10px; }
+  canvas { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 4px 20px rgba(0,0,0,0.8); touch-action: none; }
+  .upload-prompt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(18,18,18,0.95); cursor: pointer; z-index: 10; }
+  .upload-prompt .icon { font-size: 64px; margin-bottom: 16px; color: var(--primary); }
+
+  /* Bottom Toolbar */
+  .bottom-bar { background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 20; }
+  .quick-add-bar { height: 60px; display: flex; align-items: center; justify-content: space-around; padding: 0 10px; background: var(--surface-light); border-bottom: 1px solid var(--border); }
+  .quick-btn { background: transparent; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; }
+  .quick-btn i { font-size: 20px; font-style: normal; }
+  .quick-btn.active { color: var(--primary); background: rgba(41,121,255,0.1); }
+
+  .controls-panel { padding: 12px 16px; display: none; animation: slideUp 0.3s ease; max-height: 35vh; overflow-y: auto; }
+  .controls-panel.show { display: block; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .control-row label { font-size: 12px; color: var(--text-muted); min-width: 45px; font-weight: 600; }
+  .text-input-wrapper { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  textarea { width: 100%; background: transparent; border: none; color: white; font-size: 16px; resize: none; outline: none; min-height: 60px; }
+
+  /* Tabs */
+  .tab-content { display: none; } .tab-content.active { display: block; }
+  .lang-tabs { display: flex; gap: 8px; margin: 12px 0; }
+  .lang-tab { flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; }
+  .lang-tab.active { background: var(--primary); border-color: var(--primary); }
+  .font-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .font-scroll::-webkit-scrollbar { display: none; }
+  .font-chip { background: var(--bg); border: 1px solid var(--border); color: white; padding: 10px 18px; border-radius: 8px; font-size: 18px; cursor: pointer; white-space: nowrap; }
+  .font-chip.active { background: var(--primary); border-color: var(--primary); }
+
+  /* Pro UI (Resize & Align) */
+  .pro-ui-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: flex-end; }
+  .pro-ui-overlay.show { display: flex; }
+  .pro-ui-panel { background: #fff; width: 100%; border-radius: 16px 16px 0 0; display: flex; animation: slideUp 0.3s ease; overflow: hidden; }
+  .pro-ui-content { flex: 1; padding: 20px; color: #333; }
+  .pro-ui-sidebar { width: 70px; background: var(--teal-bg); display: flex; flex-direction: column; }
+  .pro-ui-sidebar button { flex: 1; border: none; background: transparent; color: white; font-size: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.2); }
+  
+  .ui-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #333; }
+  .ratio-toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+  .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--primary); } input:checked + .slider:before { transform: translateX(22px); }
+
+  .ui-slider-row { margin-bottom: 24px; }
+  .ui-slider-controls { display: flex; align-items: center; gap: 12px; }
+  .ui-circle-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ccc; background: #fff; color: var(--primary); font-size: 24px; display: flex; align-items: center; justify-content: center; }
+  .ui-slider-controls input[type="range"] { accent-color: #00897b; flex: 1; }
+
+  .align-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+  .align-btn { aspect-ratio: 1; border-radius: 50%; border: 1px solid #ddd; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: var(--primary); }
+  .align-btn svg { width: 28px; height: 28px; fill: currentColor; }
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spinner"></div><p>ലോഡ് ചെയ്യുന്നു...</p></div>
+
+<div class="navbar">
+  <div>
+    <button class="nav-btn" onclick="document.getElementById('imageInput').click()">🖼️ Photo</button>
+    <button class="nav-btn" onclick="addNewText()">➕ Text</button>
+  </div>
+  <div>
+    <!-- IndexedDB Buttons -->
+    <button class="nav-btn db-btn" onclick="saveToDB()">💾 Save DB</button>
+    <button class="nav-btn db-btn" onclick="loadFromDB()" style="background:#ff9800;">📂 Load DB</button>
+    <button class="nav-btn save-btn" onclick="downloadImage()">⬇️ Export</button>
+  </div>
+  <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+</div>
+
+<div class="canvas-container" id="canvasContainer">
+  <canvas id="canvas" width="1080" height="1080"></canvas>
+  <div class="upload-prompt" id="uploadPrompt" onclick="document.getElementById('imageInput').click()">
+    <div class="icon">📸</div><h2>ഒരു ഫോട്ടോ തിരഞ്ഞെടുക്കുക</h2>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="quick-add-bar">
+    <button class="quick-btn active" onclick="showTab('text')" id="tab-btn-text"><i>T</i>Text</button>
+    <button class="quick-btn" onclick="showTab('style')" id="tab-btn-style"><i>🎨</i>Style</button>
+    <button class="quick-btn" onclick="openProUI('resize')"><i>📏</i>Resize</button>
+    <button class="quick-btn" onclick="openProUI('align')"><i>🎯</i>Align</button>
+  </div>
+
+  <div class="controls-panel show" id="controlsPanel">
+    <div class="tab-content active" id="tab-text">
+      <div class="text-input-wrapper"><textarea id="mainTextInput" placeholder="Type here..." oninput="updateSelectedText(this.value)"></textarea></div>
+      <div class="lang-tabs">
+        <button class="lang-tab active" onclick="filterFonts('malayalam', this)">മലയാളം</button>
+        <button class="lang-tab" onclick="filterFonts('english', this)">English</button>
+        <button class="lang-tab" onclick="filterFonts('arabic', this)">العربية</button>
+      </div>
+      <div class="font-scroll" id="fontContainer"></div>
+    </div>
+
+    <div class="tab-content" id="tab-style">
+      <div class="control-row">
+        <label>Color</label>
+        <input type="color" id="colorPicker" onchange="setColor(this.value)" style="width:40px;height:40px;border:none;border-radius:50%;">
+        <label style="margin-left: 20px;">Outline</label>
+        <input type="range" id="outlineWidth" min="0" max="20" value="0" oninput="updateOutline(this.value)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRO UI OVERLAY -->
+<div class="pro-ui-overlay" id="proUiOverlay">
+  <div class="pro-ui-panel" id="resizePanel" style="display:none;">
+    <div class="pro-ui-content">
+      <div class="ui-title">Resize Element</div>
+      <div class="ratio-toggle-row">
+        <span>maintain ratio :</span>
+        <label class="toggle-switch"><input type="checkbox" id="ratioToggle" checked><span class="slider"></span></label>
+      </div>
+      <div class="ui-slider-row">
+        <div>width : <span id="widthPercentVal">100%</span></div>
+        <div class="ui-slider-controls">
+          <button class="ui-circle-btn" onclick="adjustScale(-5, 'w')">−</button>
+          <input type="range" id="scaleWidth" min="20" max="300" value="100" oninput="updateScaleUI(this.value, 'w')">
+          <button class="ui-circle-btn" onclick="adjustScale(5, 'w')">+</button>
+        </div>
+      </div>
+      <div class="ui-slider-row">
+        <div>height : <span id="heightPercentVal">100%</span></div>
+        <div class="ui-slider-controls">
+          <button class="ui-circle-btn" onclick="adjustScale(-5, 'h')">−</button>
+          <input type="range" id="scaleHeight" min="20" max="300" value="100" oninput="updateScaleUI(this.value, 'h')">
+          <button class="ui-circle-btn" onclick="adjustScale(5, 'h')">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="pro-ui-sidebar">
+      <button onclick="applyProUI()">✔</button><button onclick="cancelProUI()">✖</button>
+    </div>
+  </div>
+
+  <div class="pro-ui-panel" id="alignPanel" style="display:none;">
+    <div class="pro-ui-content">
+      <div class="ui-title">Align Element</div>
+      <div class="align-grid">
+        <button class="align-btn" onclick="alignText('left')"><svg viewBox="0 0 24 24"><path d="M4 22H2V2h2v20zm18-14v2H6v-2h16zm-6 6H6v2h10v-2zm-4 4H6v2h6v-2z"/></svg></button>
+        <button class="align-btn" onclick="alignText('center-h')"><svg viewBox="0 0 24 24"><path d="M11 2h2v20h-2V2zm7 4v2H6V6h12zm-2 6H8v2h8v-2zm2 4H6v2h12v-2z"/></svg></button>
+        <button class="align-btn" onclick="alignText('right')"><svg viewBox="0 0 24 24"><path d="M20 22h2V2h-2v20zM2 10v-2h16v2H2zm10 4H2v2h10v-2zm4 4H2v2h14v-2z"/></svg></button>
+        <button class="align-btn" onclick="alignText('top')"><svg viewBox="0 0 24 24"><path d="M2 4h20v2H2V4zm10 16V8l-4 4H5l7-7 7 7h-3l-4-4v12h-2z"/></svg></button>
+        <button class="align-btn" onclick="alignText('center-v')"><svg viewBox="0 0 24 24"><path d="M2 11h20v2H2v-2zm8 11V13l-4 4H3l7-7 7 7h-3l-4-4v9h-2z"/></svg></button>
+        <button class="align-btn" onclick="alignText('bottom')"><svg viewBox="0 0 24 24"><path d="M2 18h20v2H2v-2zm8-16v12l-4-4H3l7 7 7-7h-3l-4 4V2h-2z"/></svg></button>
+      </div>
+    </div>
+    <div class="pro-ui-sidebar">
+      <button onclick="applyProUI()">✔</button><button onclick="cancelProUI()">✖</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================= PWA REGISTRATION =================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+  });
+}
+
+// ================= INDEXED DB SETUP =================
+let db;
+const dbRequest = indexedDB.open("TextStudioDB", 1);
+dbRequest.onupgradeneeded = (e) => {
+  db = e.target.result;
+  db.createObjectStore("projects", { keyPath: "id" });
+};
+dbRequest.onsuccess = (e) => { db = e.target.result; };
+
+function saveToDB() {
+  if (!db) return alert("ഡാറ്റാബേസ് ലോഡ് ആയിട്ടില്ല!");
+  
+  // 1. Get Image Data
+  const imgData = baseImage ? baseImage.src : null;
+  
+  // 2. Get Texts Data
+  const textsData = JSON.stringify(texts);
+  
+  // 3. Save to IndexedDB
+  const tx = db.transaction("projects", "readwrite");
+  const store = tx.objectStore("projects");
+  store.put({ id: "current_project", image: imgData, layers: textsData, canvasW: canvas.width, canvasH: canvas.height });
+  
+  tx.oncomplete = () => alert("പ്രോജക്റ്റ് ബ്രൗസറിൽ സേവ് ചെയ്തു! (Saved to IndexedDB)");
+}
+
+function loadFromDB() {
+  if (!db) return alert("ഡാറ്റാബേസ് ലോഡ് ആയിട്ടില്ല!");
+  const tx = db.transaction("projects", "readonly");
+  const store = tx.objectStore("projects");
+  const req = store.get("current_project");
+  
+  req.onsuccess = () => {
+    const data = req.result;
+    if (!data) return alert("സേവ് ചെയ്ത പ്രോജക്റ്റ് കണ്ടെത്തിയില്ല!");
+    
+    // Restore Canvas Size
+    canvas.width = data.canvasW;
+    canvas.height = data.canvasH;
+    
+    // Restore Texts
+    texts = JSON.parse(data.layers);
+    selectedId = null;
+    
+    // Restore Image
+    if (data.image) {
+      const img = new Image();
+      img.onload = () => {
+        baseImage = img;
+        document.getElementById('uploadPrompt').style.display = 'none';
+        render();
+      };
+      img.src = data.image;
+    } else {
+      baseImage = null;
+      document.getElementById('uploadPrompt').style.display = 'flex';
+      render();
+    }
+  };
+}
+
+// ================= STATE & VARIABLES =================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+let baseImage = null, texts = [], selectedId = null, nextId = 1;
+let isDragging = false, dragStart = {x:0, y:0, textX:0, textY:0};
+let backupState = null;
+
+const FONTS = {
+  malayalam: [{ name: 'Noto Sans', css: "'Noto Sans Malayalam', sans-serif", sample: 'മലയാളം' }, { name: 'Baloo', css: "'Baloo Chettan 2', cursive", sample: 'മലയാളം' }, { name: 'Manjari', css: "'Manjari', sans-serif", sample: 'മലയാളം' }],
+  english: [{ name: 'Impact', css: "'Impact', sans-serif", sample: 'TEXT' }, { name: 'Anton', css: "'Anton', sans-serif", sample: 'TEXT' }, { name: 'Bebas', css: "'Bebas Neue', sans-serif", sample: 'TEXT' }],
+  arabic: [{ name: 'Cairo', css: "'Cairo', sans-serif", sample: 'العربية' }, { name: 'Amiri', css: "'Amiri', serif", sample: 'العربية' }]
+};
+
+// ================= INIT & FONT LOADING =================
+async function init() {
+  const fontsToLoad = ['bold 80px "Noto Sans Malayalam"', '800 80px "Baloo Chettan 2"', 'bold 80px "Manjari"', '80px "Impact"', 'bold 80px "Anton"', '80px "Bebas Neue"', 'bold 80px "Cairo"', 'bold 80px "Amiri"'];
+  try { await Promise.all(fontsToLoad.map(f => document.fonts.load(f))); } catch (e) { console.log(e); }
+
+  document.getElementById('loader').style.opacity = '0';
+  setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+
+  renderFonts('malayalam');
+  addNewText(); 
+  render();
+}
+
+// ================= CORE FUNCTIONS =================
+function addNewText() {
+  const layer = { id: nextId++, text: 'നിങ്ങളുടെ ടെക്സ്റ്റ്', x: canvas.width/2, y: canvas.height/2, fontSize: 80, scaleX: 1, scaleY: 1, fontFamily: "'Noto Sans Malayalam', sans-serif", color: '#ffffff', outlineColor: '#000000', outlineWidth: 0 };
+  texts.push(layer); selectText(layer.id); render();
+}
+
+function selectText(id) {
+  selectedId = id; const t = texts.find(l => l.id === id); if(!t) return;
+  document.getElementById('mainTextInput').value = t.text; document.getElementById('colorPicker').value = t.color;
+  document.getElementById('outlineWidth').value = t.outlineWidth; showTab('text'); render();
+}
+
+function updateSelectedText(val) { const t = texts.find(l => l.id === selectedId); if(t) { t.text = val; render(); } }
+function setColor(color) { const t = texts.find(l => l.id === selectedId); if(t) { t.color = color; render(); } }
+function updateOutline(val) { const t = texts.find(l => l.id === selectedId); if(t) { t.outlineWidth = parseInt(val); render(); } }
+
+function renderFonts(lang) {
+  const container = document.getElementById('fontContainer'); container.innerHTML = '';
+  (FONTS[lang] || []).forEach(f => {
+    const btn = document.createElement('div'); btn.className = 'font-chip'; btn.style.fontFamily = f.css; btn.textContent = f.sample;
+    btn.onclick = () => { document.querySelectorAll('.font-chip').forEach(el => el.classList.remove('active')); btn.classList.add('active'); const t = texts.find(l => l.id === selectedId); if(t) { t.fontFamily = f.css; render(); } };
+    container.appendChild(btn);
+  });
+}
+
+function filterFonts(lang, btn) { document.querySelectorAll('.lang-tab').forEach(el => el.classList.remove('active')); btn.classList.add('active'); renderFonts(lang); }
+function showTab(tabId) { document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active')); document.getElementById('tab-btn-'+tabId).classList.add('active'); document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.getElementById('tab-'+tabId).classList.add('active'); document.getElementById('controlsPanel').classList.add('show'); }
+
+// ================= PRO UI =================
+function openProUI(panelType) {
+  if (!selectedId) return alert("ദയവായി ആദ്യം ഒരു ടെക്സ്റ്റ് സെലക്ട് ചെയ്യുക!");
+  const t = texts.find(l => l.id === selectedId); backupState = { ...t };
+  document.getElementById('proUiOverlay').classList.add('show');
+  document.getElementById('resizePanel').style.display = panelType === 'resize' ? 'flex' : 'none';
+  document.getElementById('alignPanel').style.display = panelType === 'align' ? 'flex' : 'none';
+  if (panelType === 'resize') {
+    document.getElementById('scaleWidth').value = (t.scaleX || 1) * 100; document.getElementById('scaleHeight').value = (t.scaleY || 1) * 100;
+    document.getElementById('widthPercentVal').textContent = Math.round((t.scaleX || 1) * 100) + '%';
+    document.getElementById('heightPercentVal').textContent = Math.round((t.scaleY || 1) * 100) + '%';
+  }
+}
+function applyProUI() { document.getElementById('proUiOverlay').classList.remove('show'); backupState = null; }
+function cancelProUI() { if (backupState) { const t = texts.find(l => l.id === selectedId); if (t) Object.assign(t, backupState); } document.getElementById('proUiOverlay').classList.remove('show'); render(); }
+
+function updateScaleUI(val, type) {
+  const t = texts.find(l => l.id === selectedId); if (!t) return;
+  const ratio = document.getElementById('ratioToggle').checked; const num = parseInt(val) / 100;
+  if (type === 'w') { t.scaleX = num; document.getElementById('widthPercentVal').textContent = Math.round(num*100)+'%'; if (ratio) { t.scaleY = num; document.getElementById('scaleHeight').value = num*100; document.getElementById('heightPercentVal').textContent = Math.round(num*100)+'%'; } }
+  else { t.scaleY = num; document.getElementById('heightPercentVal').textContent = Math.round(num*100)+'%'; if (ratio) { t.scaleX = num; document.getElementById('scaleWidth').value = num*100; document.getElementById('widthPercentVal').textContent = Math.round(num*100)+'%'; } }
+  render();
+}
+function adjustScale(amount, type) { const s = type === 'w' ? document.getElementById('scaleWidth') : document.getElementById('scaleHeight'); let n = Math.max(20, Math.min(300, parseInt(s.value)+amount)); s.value = n; updateScaleUI(n, type); }
+
+function alignText(dir) {
+  const t = texts.find(l => l.id === selectedId); if (!t) return;
+  ctx.save(); ctx.font = `bold ${t.fontSize}px ${t.fontFamily}`;
+  const lines = t.text.split('\n'); let maxW = 0; lines.forEach(l => { const m = ctx.measureText(l).width; if(m > maxW) maxW = m; });
+  const totalH = lines.length * (t.fontSize * 1.4); ctx.restore();
+  const fW = maxW * (t.scaleX || 1), fH = totalH * (t.scaleY || 1), pad = 20;
+  if (dir === 'left') t.x = fW/2 + pad; else if (dir === 'right') t.x = canvas.width - (fW/2) - pad; else if (dir === 'center-h') t.x = canvas.width/2;
+  else if (dir === 'top') t.y = fH/2 + pad; else if (dir === 'bottom') t.y = canvas.height - (fH/2) - pad; else if (dir === 'center-v') t.y = canvas.height/2;
+  render();
+}
+
+// ================= RENDER & EVENTS =================
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(baseImage) ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+  else { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  
+  texts.forEach(t => {
+    ctx.save(); ctx.translate(t.x, t.y); ctx.scale(t.scaleX || 1, t.scaleY || 1);
+    ctx.font = `bold ${t.fontSize}px ${t.fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.direction = /[\u0600-\u06FF]/.test(t.text) ? 'rtl' : 'ltr';
+    const lines = t.text.split('\n'); const lineHeight = t.fontSize * 1.4; const totalH = lines.length * lineHeight; const startY = -(totalH/2) + (lineHeight/2);
+    let maxW = 0; lines.forEach(l => { const m = ctx.measureText(l).width; if(m > maxW) maxW = m; });
+    lines.forEach((line, i) => {
+      const y = startY + (i * lineHeight);
+      if(t.outlineWidth > 0) { ctx.strokeStyle = t.outlineColor; ctx.lineWidth = t.outlineWidth * 2; ctx.lineJoin = 'round'; ctx.strokeText(line, 0, y); }
+      ctx.fillStyle = t.color; ctx.fillText(line, 0, y);
+    });
+    if(t.id === selectedId && !document.getElementById('proUiOverlay').classList.contains('show')) {
+      ctx.strokeStyle = '#2979ff'; ctx.lineWidth = 2 / (t.scaleX || 1); ctx.setLineDash([5, 5]);
+      ctx.strokeRect(-maxW/2 - 10, -totalH/2 - 10, maxW + 20, totalH + 20); ctx.setLineDash([]);
+    }
+    ctx.restore();
+  });
+}
+
+function handleImageUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = event => {
+    const img = new Image();
+    img.onload = () => {
+      baseImage = img;
+      const maxDim = 1080; let nw = img.width, nh = img.height;
+      if(nw > maxDim || nh > maxDim) { if(nw > nh) { nh = Math.round(nh * (maxDim/nw)); nw = maxDim; } else { nw = Math.round(nw * (maxDim/nh)); nh = maxDim; } }
+      canvas.width = nw; canvas.height = nh; document.getElementById('uploadPrompt').style.display = 'none';
+      if(texts[0]?.text === 'നിങ്ങളുടെ ടെക്സ്റ്റ്') { texts[0].x = canvas.width/2; texts[0].y = canvas.height/2; }
+      render();
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function getCanvasCoords(e) { const rect = canvas.getBoundingClientRect(); return { x: ((e.touches?e.touches[0].clientX:e.clientX) - rect.left) * (canvas.width/rect.width), y: ((e.touches?e.touches[0].clientY:e.clientY) - rect.top) * (canvas.height/rect.height) }; }
+function isPointInText(pos, t) {
+  ctx.save(); ctx.font = `bold ${t.fontSize}px ${t.fontFamily}`;
+  const lines = t.text.split('\n'); let maxW = 0; lines.forEach(l => { const m = ctx.measureText(l).width; if(m > maxW) maxW = m; });
+  const totalH = lines.length * (t.fontSize * 1.4); ctx.restore();
+  return Math.abs(pos.x - t.x) <= (maxW*(t.scaleX||1))/2 + 30 && Math.abs(pos.y - t.y) <= (totalH*(t.scaleY||1))/2 + 30;
+}
+
+function handlePointerDown(e) {
+  if(e.target !== canvas || document.getElementById('proUiOverlay').classList.contains('show')) return;
+  e.preventDefault(); const pos = getCanvasCoords(e);
+  for(let i = texts.length - 1; i >= 0; i--) {
+    if(isPointInText(pos, texts[i])) { selectText(texts[i].id); isDragging = true; dragStart = { x: pos.x, y: pos.y, textX: texts[i].x, textY: texts[i].y }; return; }
+  }
+  selectedId = null; render();
+}
+function handlePointerMove(e) {
+  if(!isDragging || !selectedId) return; e.preventDefault(); const pos = getCanvasCoords(e); const t = texts.find(l => l.id === selectedId);
+  if(t) { t.x = dragStart.textX + (pos.x - dragStart.x); t.y = dragStart.textY + (pos.y - dragStart.y); render(); }
+}
+function handlePointerUp() { isDragging = false; }
+
+canvas.addEventListener('mousedown', handlePointerDown); canvas.addEventListener('mousemove', handlePointerMove);
+canvas.addEventListener('mouseup', handlePointerUp); canvas.addEventListener('mouseleave', handlePointerUp);
+canvas.addEventListener('touchstart', handlePointerDown, {passive: false}); canvas.addEventListener('touchmove', handlePointerMove, {passive: false}); canvas.addEventListener('touchend', handlePointerUp);
+
+function downloadImage() {
+  if(!baseImage) return alert('ദയവായി ആദ്യം ഒരു ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക!');
+  const prev = selectedId; selectedId = null; render();
+  const link = document.createElement('a'); link.download = 'design.png'; link.href = canvas.toDataURL('image/png'); link.click();
+  selectedId = prev; render();
+}
+
+init();
+</script>
+</body>
+</html>
