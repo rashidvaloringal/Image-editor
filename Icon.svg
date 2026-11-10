@@ -1,5 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="100" fill="#2979ff"/>
-  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="200" fill="#ffffff">T</text>
-  <path d="M 120 380 L 392 380" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-dasharray="20, 20"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Background: Rounded square with a dark gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8d66c"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#9c6414"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#d4af37" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Base Shape -->
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="url(#bgGrad)" stroke="#30363d" stroke-width="4"/>
+
+  <!-- Cinematic Light Flare -->
+  <circle cx="400" cy="100" r="80" fill="#d4af37" opacity="0.1" filter="blur(20px)"/>
+  <circle cx="400" cy="100" r="40" fill="#f8d66c" opacity="0.2" filter="blur(10px)"/>
+
+  <!-- Play Button (YouTube symbol) -->
+  <rect x="80" y="80" width="352" height="198" rx="40" fill="#ffffff" opacity="0.05" stroke="#ffffff" stroke-width="2" stroke-opacity="0.1"/>
+  <polygon points="220,140 320,179 220,218" fill="url(#goldGrad)" filter="url(#shadow)"/>
+
+  <!-- Main "T" (Text Symbol) -->
+  <g filter="url(#shadow)">
+    <!-- Vertical Bar -->
+    <rect x="235" y="300" width="42" height="120" rx="8" fill="url(#goldGrad)"/>
+    <!-- Horizontal Bar -->
+    <rect x="140" y="300" width="232" height="42" rx="8" fill="url(#goldGrad)"/>
+  </g>
+
+  <!-- Small decorative text lines (representing subtitles/text layers) -->
+  <rect x="140" y="380" width="120" height="12" rx="6" fill="#ffffff" opacity="0.4"/>
+  <rect x="140" y="404" width="180" height="12" rx="6" fill="#ffffff" opacity="0.2"/>
+  
+  <!-- Arabic decoration hint (Small dot) -->
+  <circle cx="370" cy="386" r="6" fill="#d4af37" opacity="0.8"/>
 </svg>
