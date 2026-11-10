@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2979ff">
 <title>Pro Text Studio</title>
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,12 +26,24 @@
   .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Navbar */
-  .navbar { height: 56px; background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; flex-shrink: 0; }
-  .nav-btn { background: transparent; border: none; color: white; font-size: 13px; font-weight: 600; height: 36px; padding: 0 12px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; gap: 6px; }
+  /* Navbar (Fixed Layout) */
+  .navbar { 
+    height: 56px; background: #1a1a1a; display: flex; align-items: center; justify-content: space-between; 
+    padding: 0 10px; z-index: 100; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+  }
+  .navbar::-webkit-scrollbar { display: none; }
+  .nav-group { display: flex; gap: 6px; align-items: center; }
+  .nav-btn { 
+    background: transparent; border: none; color: white; font-size: 12px; font-weight: 600; 
+    height: 34px; padding: 0 10px; border-radius: 6px; display: flex; align-items: center; 
+    justify-content: center; cursor: pointer; gap: 4px; white-space: nowrap;
+  }
   .nav-btn:active { background: rgba(255,255,255,0.1); }
-  .nav-btn.save-btn { background: var(--primary); }
-  .nav-btn.db-btn { background: #4caf50; }
+  .btn-photo { background: #2a2a35; }
+  .btn-db { background: #4caf50; }
+  .btn-load { background: #ff9800; }
+  .btn-export { background: var(--primary); }
+  .btn-install { background: #9c27b0; display: none; }
 
   /* Canvas */
   .canvas-container { flex: 1; position: relative; background: #0a0a0a; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 10px; }
@@ -96,15 +108,15 @@
 <div id="loader"><div class="spinner"></div><p>ലോഡ് ചെയ്യുന്നു...</p></div>
 
 <div class="navbar">
-  <div>
-    <button class="nav-btn" onclick="document.getElementById('imageInput').click()">🖼️ Photo</button>
-    <button class="nav-btn" onclick="addNewText()">➕ Text</button>
+  <div class="nav-group">
+    <button class="nav-btn btn-photo" onclick="document.getElementById('imageInput').click()">🖼️ Photo</button>
+    <button class="nav-btn btn-photo" onclick="addNewText()">➕ Text</button>
   </div>
-  <div>
-    <!-- IndexedDB Buttons -->
-    <button class="nav-btn db-btn" onclick="saveToDB()">💾 Save DB</button>
-    <button class="nav-btn db-btn" onclick="loadFromDB()" style="background:#ff9800;">📂 Load DB</button>
-    <button class="nav-btn save-btn" onclick="downloadImage()">⬇️ Export</button>
+  <div class="nav-group">
+    <button class="nav-btn btn-install" id="installBtn" onclick="installPWA()">📲 Install</button>
+    <button class="nav-btn btn-db" onclick="saveToDB()">💾 Save DB</button>
+    <button class="nav-btn btn-load" onclick="loadFromDB()">📂 Load DB</button>
+    <button class="nav-btn btn-export" onclick="downloadImage()">⬇️ Export</button>
   </div>
   <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 </div>
@@ -196,10 +208,34 @@
 </div>
 
 <script>
-// ================= PWA REGISTRATION =================
+// ================= PWA INSTALL LOGIC =================
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'flex'; // Show install button if criteria met
+});
+
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      }
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  } else {
+    alert("ഇൻസ്റ്റാൾ ചെയ്യാൻ സാധിക്കുന്നില്ല. നിങ്ങൾ ഇത് Chrome ബ്രൗസറിൽ തുറന്നിട്ടുണ്ടെന്ന് ഉറപ്പാക്കുക, കൂടാതെ manifest.json ശരിയായി ലോഡ് ചെയ്തിട്ടുണ്ടെന്ന് പരിശോധിക്കുക.");
+  }
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+    navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
   });
 }
 
@@ -214,18 +250,11 @@ dbRequest.onsuccess = (e) => { db = e.target.result; };
 
 function saveToDB() {
   if (!db) return alert("ഡാറ്റാബേസ് ലോഡ് ആയിട്ടില്ല!");
-  
-  // 1. Get Image Data
   const imgData = baseImage ? baseImage.src : null;
-  
-  // 2. Get Texts Data
   const textsData = JSON.stringify(texts);
-  
-  // 3. Save to IndexedDB
   const tx = db.transaction("projects", "readwrite");
   const store = tx.objectStore("projects");
   store.put({ id: "current_project", image: imgData, layers: textsData, canvasW: canvas.width, canvasH: canvas.height });
-  
   tx.oncomplete = () => alert("പ്രോജക്റ്റ് ബ്രൗസറിൽ സേവ് ചെയ്തു! (Saved to IndexedDB)");
 }
 
@@ -239,15 +268,11 @@ function loadFromDB() {
     const data = req.result;
     if (!data) return alert("സേവ് ചെയ്ത പ്രോജക്റ്റ് കണ്ടെത്തിയില്ല!");
     
-    // Restore Canvas Size
     canvas.width = data.canvasW;
     canvas.height = data.canvasH;
-    
-    // Restore Texts
     texts = JSON.parse(data.layers);
     selectedId = null;
     
-    // Restore Image
     if (data.image) {
       const img = new Image();
       img.onload = () => {
