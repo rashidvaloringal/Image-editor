@@ -1,0 +1,17 @@
+{
+  "name": "Pro Text Studio",
+  "short_name": "TextStudio",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#2979ff",
+  "description": "Malayalam, English, Arabic Text Overlay App",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
